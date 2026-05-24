@@ -4,6 +4,11 @@ import Login from "./Login";
 import { auth, db } from "./firebase";
 import { doc, setDoc, getDoc, arrayUnion } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { Routes, Route, Link } from "react-router-dom";
+import ProdutoRobo from "./ProdutoRobo";
+import ProdutoCombo from "./ProdutoCombo";
+import ProdutoPainelSMM from "./ProdutoPainelSMM";
+import ProdutoGrupos from "./ProdutoGrupos";
 
 import {
   ShoppingCart,
@@ -60,8 +65,15 @@ function App() {
   const [user, setUser] = useState(null);
   const [meusProdutos, setMeusProdutos] = useState([]);
   const [comprasOpen, setComprasOpen] = useState(false);
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
-const [carrinho, setCarrinho] = useState([]);
+const [carrinho, setCarrinho] = useState(() => {
+  const carrinhoSalvo = localStorage.getItem("carrinho");
+
+  return carrinhoSalvo
+    ? JSON.parse(carrinhoSalvo)
+    : [];
+});
 
 function valorNumero(preco) {
   return Number(preco.replace("R$", "").replace(".", "").replace(",", ".").trim());
@@ -70,7 +82,21 @@ function valorNumero(preco) {
 function valorReal(valor) {
   return `R$ ${valor.toFixed(2).replace(".", ",")}`;
 }
+useEffect(() => {
+  localStorage.setItem(
+    "carrinho",
+    JSON.stringify(carrinho)
+  );
+}, [carrinho]);
+useEffect(() => {
+  
+  const abrirCarrinho = localStorage.getItem("abrirCarrinho");
 
+  if (abrirCarrinho === "sim") {
+    localStorage.removeItem("abrirCarrinho");
+    setCartOpen(true);
+  }
+}, []);
 const totalCarrinho = carrinho.reduce((total, item) => total + valorNumero(item.price), 0);
 
 function adicionarCarrinho(produto) {
@@ -87,7 +113,24 @@ function adicionarCarrinho(produto) {
 
   setCartOpen(true);
 }
+useEffect(() => {
+  const abrirCheckoutRobo = localStorage.getItem("abrirCheckoutRobo");
 
+  if (abrirCheckoutRobo === "sim") {
+    localStorage.removeItem("abrirCheckoutRobo");
+
+    setCheckoutProduct({
+      name: "Robô Divulgador WhatsApp",
+      price: "R$ 15,00",
+      image: "/produtos/robo-whatsapp.jpeg",
+      tag: "Mais vendido",
+      discount: "40%",
+    });
+
+    setPixData(null);
+    setCheckoutError("");
+  }
+}, []);
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
     setUser(currentUser);
@@ -121,6 +164,7 @@ useEffect(() => {
 const [checkoutProduct, setCheckoutProduct] = useState(null);
 const [pixData, setPixData] = useState(null);
 const [checkoutError, setCheckoutError] = useState("");
+const [loadingPix, setLoadingPix] = useState(false);
 const [customer, setCustomer] = useState({
   nome: "",
   whatsapp: "",
@@ -128,6 +172,11 @@ const [customer, setCustomer] = useState({
 });
 async function gerarPix() {
   try {
+    setLoadingPix(true);
+    if (pixData?.qr_code) {
+  setLoadingPix(false);
+  return;
+}
     const nomeValido = customer.nome.trim().length >= 6;
 const whatsappValido = /^\d{10,11}$/.test(customer.whatsapp.replace(/\D/g, ""));
 const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email);
@@ -180,8 +229,32 @@ async function verificarPagamento(paymentId) {
         clearInterval(interval);
 
         setPixData({
-          aprovado: true,
-        });
+  ...data,
+  aprovado: true,
+});
+
+setCarrinho([]);
+const produtosLiberados = checkoutProduct.items
+  ? checkoutProduct.items.map((item) => ({
+      nome: item.name,
+      imagem: item.image,
+      data: new Date().toISOString(),
+    }))
+  : [
+      {
+        nome: checkoutProduct.name,
+        imagem: checkoutProduct.image,
+        data: new Date().toISOString(),
+      },
+    ];
+
+setMeusProdutos((produtosAtuais) => [
+  ...produtosAtuais,
+  ...produtosLiberados,
+]);
+
+setCheckoutProduct(null);
+setComprasOpen(true);
       }
     } catch (error) {
       console.log(error);
@@ -210,10 +283,224 @@ const valor = Number(
 
     const data = await response.json();
     setPixData(data);
-    verificarPagamento(data.id);
+    verificarPagamento(data.id)
+    setLoadingPix(false);
   } catch (error) {
+    setLoadingPix(false);
     alert("Erro ao gerar PIX. Verifique se o backend está rodando.");
   }
+}
+if (window.location.pathname === "/produto/combo-divulgacao") {
+  const produtoCombo = {
+    name: "Combo Divulgação",
+    price: "R$ 20,00",
+    image: "/produtos/combo-divulgacao.png",
+    tag: "COMBO",
+    discount: "43%",
+  };
+
+  return (
+    <ProdutoCombo
+    user={user}
+loginOpen={loginOpen}
+setLoginOpen={setLoginOpen}
+      jaComprou={meusProdutos.some((p) => p.nome === produtoCombo.name)}
+      onComprar={() => {
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (meusProdutos.some((p) => p.nome === produtoCombo.name)) {
+          setProdutoSelecionado(produtoCombo.name);
+          setComprasOpen(true);
+          return;
+        }
+
+        setCheckoutProduct(produtoCombo);
+        setPixData(null);
+        setCheckoutError("");
+      }}
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+      pixData={pixData}
+      checkoutError={checkoutError}
+      customer={customer}
+      setCustomer={setCustomer}
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
+}
+if (window.location.pathname === "/produto/robo-whatsapp") {
+  const produtoRobo = {
+    name: "Robô Divulgador WhatsApp",
+    price: "R$ 15,00",
+    image: "/produtos/robo-whatsapp.jpeg",
+    tag: "Mais vendido",
+    discount: "40%",
+  };
+  
+
+  return (
+    <ProdutoRobo
+    user={user}
+loginOpen={loginOpen}
+setLoginOpen={setLoginOpen}
+      jaComprou={meusProdutos.some((p) => p.nome === produtoRobo.name)}
+
+      onComprar={() => {
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (meusProdutos.some((p) => p.nome === produtoRobo.name)) {
+          window.location.href = "/";
+localStorage.setItem("abrirProdutoComprado", produtoRobo.name);
+return;
+        }
+
+        setCheckoutProduct(produtoRobo);
+        setPixData(null);
+        setCheckoutError("");
+      }}
+
+      onCarrinho={() => {
+  const carrinhoAtual = JSON.parse(localStorage.getItem("carrinho")) || [];
+
+  const jaTem = carrinhoAtual.some(
+    (item) => item.name === produtoRobo.name
+  );
+
+  if (!jaTem) {
+    localStorage.setItem(
+      "carrinho",
+      JSON.stringify([...carrinhoAtual, produtoRobo])
+    );
+  }
+
+  setCheckoutError("✅ Produto adicionado ao carrinho! Volte para a loja e abra o carrinho quando quiser finalizar.");
+}}
+
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+      pixData={pixData}
+      checkoutError={checkoutError}
+      customer={customer}
+      setCustomer={setCustomer}
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
+}
+if (window.location.pathname === "/produto/painel-smm") {
+
+  const produtoPainel = {
+    name: "Painel SMM",
+    price: "R$ 25,00",
+    image: "/produtos/painel-smm.png",
+    tag: "PAINEL",
+    discount: "38%",
+  };
+
+  return (
+    <ProdutoPainelSMM
+      user={user}
+      loginOpen={loginOpen}
+      setLoginOpen={setLoginOpen}
+
+      jaComprou={meusProdutos.some(
+        (p) => p.nome === produtoPainel.name
+      )}
+
+      onComprar={() => {
+
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (
+          meusProdutos.some(
+            (p) => p.nome === produtoPainel.name
+          )
+        ) {
+
+          window.location.href = "/";
+          return;
+        }
+
+        setCheckoutProduct(produtoPainel);
+        setPixData(null);
+        setCheckoutError("");
+
+      }}
+
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+      pixData={pixData}
+      checkoutError={checkoutError}
+      customer={customer}
+      setCustomer={setCustomer}
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
+}
+if (window.location.pathname === "/produto/grupos-divulgacao") {
+
+  const produtoGrupos = {
+    name: "+2000 Grupos de Divulgação",
+    price: "R$ 12,50",
+    image: "/produtos/grupos-2000.png",
+    tag: "POPULAR",
+    discount: "37%",
+  };
+
+  return (
+    <ProdutoGrupos
+      user={user}
+      loginOpen={loginOpen}
+      setLoginOpen={setLoginOpen}
+
+      jaComprou={meusProdutos.some(
+        (p) => p.nome === produtoGrupos.name
+      )}
+
+      onComprar={() => {
+
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (
+          meusProdutos.some(
+            (p) => p.nome === produtoGrupos.name
+          )
+        ) {
+
+          window.location.href = "/";
+          return;
+        }
+
+        setCheckoutProduct(produtoGrupos);
+        setPixData(null);
+        setCheckoutError("");
+
+      }}
+
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+      pixData={pixData}
+      checkoutError={checkoutError}
+      customer={customer}
+      setCustomer={setCustomer}
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
 }
   return (
     <div id="topo" className="min-h-screen bg-black text-white overflow-hidden">
@@ -242,7 +529,6 @@ const valor = Number(
         <nav className="hidden md:flex items-center gap-8 font-semibold">
           <a href="#topo">Início</a>
           <a href="#produtos">Produtos</a>
-          <a href="#">Planos</a>
           <a href="https://wa.me/5543996103939" target="_blank">Suporte</a>
           <a href="https://wa.me/5543996103939" target="_blank">Contato</a>
         </nav>
@@ -318,6 +604,11 @@ const valor = Number(
           </button>
         </div>
       </header>
+      <div className="md:hidden relative z-20 flex items-center justify-center gap-6 text-sm font-bold border-b border-white/10 py-3">
+  <a href="#produtos">Produtos</a>
+  <a href="https://wa.me/5543996103939" target="_blank">Suporte</a>
+  <a href="https://wa.me/5543996103939" target="_blank">Contato</a>
+</div>
       {loginOpen && (
   <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div className="w-full max-w-md rounded-3xl border border-purple-500/40 bg-[#0f0f12] p-6 relative shadow-[0_0_50px_rgba(168,85,247,.35)]">
@@ -418,6 +709,7 @@ const valor = Number(
     });
 
     setPixData(null);
+    setCheckoutError("");
     setCartOpen(false);
   }}
   className="w-full bg-green-600 hover:bg-green-500 transition py-4 rounded-2xl font-black text-lg"
@@ -455,7 +747,11 @@ const valor = Number(
         </p>
       ) : (
         <div className="space-y-5">
-          {meusProdutos.map((produto, index) => (
+          {meusProdutos
+  .filter((produto) =>
+    produtoSelecionado ? produto.nome === produtoSelecionado : true
+  )
+  .map((produto, index) => (
             <div
               key={index}
               className="rounded-2xl border border-white/10 bg-black p-4"
@@ -599,6 +895,19 @@ const valor = Number(
     Entrar / Criar conta
   </button>
 )}
+<div className="md:hidden flex items-center justify-center gap-6 text-sm font-bold border-t border-white/10 py-3">
+  <a href="#produtos" className="hover:text-green-400 transition">
+    Produtos
+  </a>
+
+  <a href="#suporte" className="hover:text-green-400 transition">
+    Suporte
+  </a>
+
+  <a href="#contato" className="hover:text-green-400 transition">
+    Contato
+  </a>
+</div>
           </div>
         </div>
       )}
@@ -665,9 +974,7 @@ const valor = Number(
         <section id="produtos" className="pb-20">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
             <h2 className="text-4xl font-black">Produtos em destaque</h2>
-            <button className="px-5 py-3 rounded-xl bg-purple-600/30 border border-purple-500">
-              Ver todos →
-            </button>
+            
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-7">
@@ -732,12 +1039,30 @@ const valor = Number(
     );
 
     if (jaComprou) {
-      setComprasOpen(true);
-      return;
-    }
+  setProdutoSelecionado(p.name);
+  setComprasOpen(true);
+  return;
+}
 
-    setCheckoutProduct(p);
-    setPixData(null);
+    if (p.name === "Robô Divulgador WhatsApp") {
+  window.location.href = "/produto/robo-whatsapp";
+  return;
+}
+
+if (p.name === "Combo Divulgação") {
+  window.location.href = "/produto/combo-divulgacao";
+  return;
+}
+
+if (p.name === "Painel SMM") {
+  window.location.href = "/produto/painel-smm";
+  return;
+}
+if (p.name === "+2000 Grupos de Divulgação") {
+  window.location.href = "/produto/grupos-divulgacao";
+  return;
+}
+    setCheckoutError("");
   }}
   className={`flex-1 text-center px-3 py-3 rounded-xl text-sm md:text-base font-black transition-all duration-300 ${
     meusProdutos.some((produto) => produto.nome === p.name)
@@ -833,9 +1158,14 @@ onChange={(e) =>
 
 <button
   onClick={gerarPix}
+  disabled={loadingPix}
   className="w-full bg-green-600 hover:bg-green-500 transition py-4 rounded-2xl font-black text-lg shadow-[0_0_30px_rgba(34,197,94,.5)]"
 >
-  Gerar PIX
+  {loadingPix
+  ? "Gerando PIX..."
+  : pixData?.qr_code
+    ? "PIX já gerado"
+    : "Gerar PIX"}
 </button>
 
 {pixData && (

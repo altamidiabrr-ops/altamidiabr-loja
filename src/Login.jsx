@@ -13,6 +13,7 @@ export default function Login({ onLoginSuccess = () => {} }) {
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [modoCadastro, setModoCadastro] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   function validar() {
     if (!email.includes("@")) {
@@ -55,7 +56,24 @@ export default function Login({ onLoginSuccess = () => {} }) {
       onLoginSuccess();
     } catch (error) {
       console.log(error);
-      setMensagem("Conta não encontrada. Clique em Criar conta.");
+
+      if (
+        error.code === "auth/user-not-found" ||
+        error.message.includes("user-not-found")
+      ) {
+        setMensagem("Esse e-mail não está cadastrado. Clique em Criar conta.");
+        return;
+      }
+
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        setMensagem("E-mail ou senha incorretos. Verifique os dados e tente novamente.");
+        return;
+      }
+
+      setMensagem("Erro ao entrar. Verifique os dados.");
     }
   }
 
@@ -99,14 +117,25 @@ export default function Login({ onLoginSuccess = () => {} }) {
         onChange={(e) => setEmail(e.target.value)}
         className="bg-black border border-white/10 rounded-xl p-4 outline-none focus:border-green-500"
       />
+<div className="relative">
 
-      <input
-        type="password"
-        placeholder="Sua senha"
-        value={senha}
-        onChange={(e) => setSenha(e.target.value)}
-        className="bg-black border border-white/10 rounded-xl p-4 outline-none focus:border-green-500"
-      />
+  <input
+    type={mostrarSenha ? "text" : "password"}
+    placeholder="Sua senha"
+    value={senha}
+    onChange={(e) => setSenha(e.target.value)}
+    className="bg-black border border-white/10 rounded-xl p-4 pr-14 w-full outline-none focus:border-green-500"
+  />
+
+  <button
+    type="button"
+    onClick={() => setMostrarSenha(!mostrarSenha)}
+    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+  >
+   {mostrarSenha ? "Ocultar" : "Mostrar"}
+  </button>
+
+</div>
 
       {modoCadastro && (
         <input
