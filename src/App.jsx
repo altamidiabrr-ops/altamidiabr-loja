@@ -199,7 +199,7 @@ async function verificarPagamento(paymentId) {
   const interval = setInterval(async () => {
     try {
       const response = await fetch(
-        `http://localhost:3000/pagamento/${paymentId}`
+        `https://altamidiabr-backend.onrender.com/pagamento/${paymentId}`
       );
 
       const data = await response.json();
@@ -270,7 +270,7 @@ const valor = Number(
         .trim()
     );
 
-    const response = await fetch("http://localhost:3000/criar-pix", {
+    const response = await fetch("https://altamidiabr-backend.onrender.com/criar-pix", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
