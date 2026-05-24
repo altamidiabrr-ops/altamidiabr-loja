@@ -18,6 +18,7 @@ export default function ProdutoPainelSMM({
   loadingPix,
 }) {
   const [avisoCarrinho, setAvisoCarrinho] = useState("");
+  const [avisoPix, setAvisoPix] = useState("");
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -223,7 +224,10 @@ export default function ProdutoPainelSMM({
                 </div>
               )}
 
-              <button onClick={gerarPix} disabled={loadingPix} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-black text-lg">
+              <button onClick={() => {
+  setAvisoPix("");
+  gerarPix();
+}} disabled={loadingPix} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-black text-lg">
                 {loadingPix ? "Gerando PIX..." : pixData?.qr_code ? "PIX já gerado" : "Gerar PIX"}
               </button>
 
@@ -232,9 +236,24 @@ export default function ProdutoPainelSMM({
                   <p className="text-green-400 font-black mb-3">PIX gerado com sucesso</p>
                   <img src={`data:image/jpeg;base64,${pixData.qr_code_base64}`} className="w-48 h-48 mx-auto rounded-xl bg-white p-2" />
                   <textarea value={pixData.qr_code} readOnly className="mt-4 w-full h-28 bg-[#111] border border-white/10 rounded-xl p-3 text-xs text-gray-300" />
-                  <button onClick={() => navigator.clipboard.writeText(pixData.qr_code)} className="mt-3 w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-black">
-                    Copiar código PIX
-                  </button>
+                  <button
+  className="mt-3 w-full rounded-xl bg-green-600 hover:bg-green-500 py-3 font-black text-white transition"
+  onClick={async () => {
+    try {
+      await navigator.clipboard.writeText(pixData.qr_code);
+      setAvisoPix("✅ Código PIX copiado com sucesso!");
+    } catch (error) {
+      setAvisoPix("⚠️ Não foi possível copiar o PIX.");
+    }
+  }}
+>
+  Copiar código PIX
+</button>
+{avisoPix && (
+  <div className="mt-3 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-center font-bold text-green-300">
+    {avisoPix}
+  </div>
+)}
                 </div>
               )}
             </div>

@@ -173,26 +173,26 @@ const [customer, setCustomer] = useState({
 async function gerarPix() {
   try {
     setLoadingPix(true);
-    if (pixData?.qr_code) {
-  setLoadingPix(false);
-  return;
-}
+  
     const nomeValido = customer.nome.trim().length >= 6;
 const whatsappValido = /^\d{10,11}$/.test(customer.whatsapp.replace(/\D/g, ""));
 const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customer.email);
 
 if (!nomeValido) {
   setCheckoutError("Digite seu nome completo.");
-  return;
+setLoadingPix(false);
+return;
 }
 
 if (!whatsappValido) {
   setCheckoutError("Digite um WhatsApp válido com DDD, somente números.");
+  setLoadingPix(false);
   return;
 }
 
 if (!emailValido) {
 setCheckoutError("Digite um e-mail válido.");
+setLoadingPix(false);
   return;
 }
 async function verificarPagamento(paymentId) {
