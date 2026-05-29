@@ -9,6 +9,7 @@ import ProdutoRobo from "./ProdutoRobo";
 import ProdutoCombo from "./ProdutoCombo";
 import ProdutoPainelSMM from "./ProdutoPainelSMM";
 import ProdutoGrupos from "./ProdutoGrupos";
+import CursoProgama from "./cursoprogama";
 
 import {
   ShoppingCart,
@@ -56,6 +57,14 @@ const products = [
     tag: "COMBO",
     discount: "43%",
   },
+ {
+  name: "Curso Completo de Programação",
+  price: "R$ 59,00",
+  oldPrice: "R$ 120,00",
+  image: "/produtos/cursoprogama.png",
+  tag: "NOVO",
+  discount: "51%",
+},
 ];
 
 function App() {
@@ -501,6 +510,61 @@ if (window.location.pathname === "/produto/grupos-divulgacao") {
       loadingPix={loadingPix}
     />
   );
+  }
+
+  if (window.location.pathname === "/produto/curso-programacao") {
+
+  const produtoCurso = {
+    name: "Curso Completo de Programação",
+    price: "R$ 59,00",
+    image: "/produtos/cursoprogama.png",
+    tag: "NOVO",
+    discount: "51%",
+  };
+
+  return (
+    <CursoProgama
+      user={user}
+      loginOpen={loginOpen}
+      setLoginOpen={setLoginOpen}
+
+      jaComprou={meusProdutos.some(
+        (p) => p.nome === produtoCurso.name
+      )}
+
+      onComprar={() => {
+
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (meusProdutos.some((p) => p.nome === produtoCurso.name)) {
+
+          window.location.href =
+            "https://drive.google.com/drive/folders/1gpgfow0pwU_lvi1pyhCdIMueLsOSt0aK";
+
+          return;
+        }
+
+        setCheckoutProduct(produtoCurso);
+        setPixData(null);
+        setCheckoutError("");
+      }}
+
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+
+      pixData={pixData}
+      checkoutError={checkoutError}
+
+      customer={customer}
+      setCustomer={setCustomer}
+
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
 }
   return (
     <div id="topo" className="min-h-screen bg-black text-white overflow-hidden">
@@ -767,6 +831,15 @@ if (window.location.pathname === "/produto/grupos-divulgacao") {
               <p className="text-green-400 font-bold mb-4">
                 ✅ Produto liberado na sua conta
               </p>
+              {produto.nome === "Curso Completo de Programação" && (
+  <a
+    href="https://drive.google.com/drive/folders/1gpgfow0pwU_lvi1pyhCdIMueLsOSt0aK"
+    target="_blank"
+    className="mt-4 block w-full rounded-xl bg-green-600 hover:bg-green-500 py-3 text-center font-black text-white transition"
+  >
+    Acessar curso agora
+  </a>
+)}
 
               {produto.nome === "+2000 Grupos de Divulgação" && (
                 <div className="flex flex-col gap-3">
@@ -1062,6 +1135,10 @@ if (p.name === "+2000 Grupos de Divulgação") {
   window.location.href = "/produto/grupos-divulgacao";
   return;
 }
+if (p.name === "Curso Completo de Programação") {
+window.location.href = "/produto/curso-programacao";
+return;
+}
     setCheckoutError("");
   }}
   className={`flex-1 text-center px-3 py-3 rounded-xl text-sm md:text-base font-black transition-all duration-300 ${
@@ -1139,7 +1216,11 @@ onChange={(e) =>
 }
                 className="w-full bg-black border border-white/10 rounded-2xl p-4 outline-none focus:border-green-500"
               />
-
+{checkoutError && (
+  <div className="rounded-xl border border-red-500/40 bg-red-600/20 p-3 text-center text-sm font-bold text-red-200">
+    {checkoutError}
+  </div>
+)}
               <input
                 type="email"
                 placeholder="Seu e-mail"
