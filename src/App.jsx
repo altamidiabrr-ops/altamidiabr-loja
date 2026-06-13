@@ -10,6 +10,7 @@ import ProdutoCombo from "./ProdutoCombo";
 import ProdutoPainelSMM from "./ProdutoPainelSMM";
 import ProdutoGrupos from "./ProdutoGrupos";
 import CursoProgama from "./cursoprogama";
+import Produto80MilCortes from "./Produto80MilCortes";
 
 import {
   ShoppingCart,
@@ -65,6 +66,14 @@ const products = [
   tag: "NOVO",
   discount: "51%",
 },
+{
+  name: "80 Mil Cortes Virais",
+  oldPrice: "49,90",
+  price: "9,50",
+  image: "/produtos/80mil-cortes.png",
+  tag: "NOVO",
+  discount: "81%",
+}
 ];
 
 function App() {
@@ -174,6 +183,7 @@ const [checkoutProduct, setCheckoutProduct] = useState(null);
 const [pixData, setPixData] = useState(null);
 const [checkoutError, setCheckoutError] = useState("");
 const [loadingPix, setLoadingPix] = useState(false);
+const [avisoPix, setAvisoPix] = useState("");
 const [customer, setCustomer] = useState({
   nome: "",
   whatsapp: "",
@@ -181,6 +191,7 @@ const [customer, setCustomer] = useState({
 });
 async function gerarPix() {
   try {
+    setAvisoPix("");
     setLoadingPix(true);
   
     const nomeValido = customer.nome.trim().length >= 6;
@@ -412,7 +423,7 @@ if (window.location.pathname === "/produto/painel-smm") {
     tag: "PAINEL",
     discount: "38%",
   };
-
+  
   return (
     <ProdutoPainelSMM
       user={user}
@@ -561,6 +572,50 @@ if (window.location.pathname === "/produto/grupos-divulgacao") {
       customer={customer}
       setCustomer={setCustomer}
 
+      gerarPix={gerarPix}
+      loadingPix={loadingPix}
+    />
+  );
+}
+if (window.location.pathname === "/produto/80mil-cortes") {
+  const produto80MilCortes = {
+    name: "80 Mil Cortes Virais",
+    price: "R$ 9,50",
+    image: "/produtos/80mil-cortes.png",
+    tag: "NOVO",
+    discount: "",
+  };
+
+  return (
+    <Produto80MilCortes
+      user={user}
+      loginOpen={loginOpen}
+      setLoginOpen={setLoginOpen}
+      jaComprou={meusProdutos.some(
+        (p) => p.nome === produto80MilCortes.name
+      )}
+      onComprar={() => {
+        if (!user) {
+          setLoginOpen(true);
+          return;
+        }
+
+        if (meusProdutos.some((p) => p.nome === produto80MilCortes.name)) {
+          window.location.href =
+            "https://drive.google.com/drive/folders/1L0iOH7V7E-wgTUcm2r9M5rdFbW9HapzT";
+          return;
+        }
+
+        setCheckoutProduct(produto80MilCortes);
+        setPixData(null);
+        setCheckoutError("");
+      }}
+      checkoutProduct={checkoutProduct}
+      setCheckoutProduct={setCheckoutProduct}
+      pixData={pixData}
+      checkoutError={checkoutError}
+      customer={customer}
+      setCustomer={setCustomer}
       gerarPix={gerarPix}
       loadingPix={loadingPix}
     />
@@ -906,13 +961,24 @@ if (window.location.pathname === "/produto/grupos-divulgacao") {
                   </a>
                 </div>
               )}
+              {produto.nome === "80 Mil Cortes Virais" && (
+  <a
+    href="https://drive.google.com/drive/folders/1L0iOH7V7E-wgTUcm2r9M5rdFbW9HapzT"
+    target="_blank"
+    className="mt-4 block w-full rounded-xl bg-green-600 hover:bg-green-500 py-3 text-center font-black text-white transition"
+  >
+    Acessar 80 Mil Cortes agora
+  </a>
+)}
             </div>
           ))}
         </div>
       )}
     </div>
   </div>
+  
 )}
+
       {menuOpen && (
         <div className="md:hidden relative z-30 px-6 py-4 border-b border-white/10 bg-black/95 backdrop-blur-xl">
           <div className="flex flex-col gap-4 text-lg font-bold">
@@ -1139,6 +1205,10 @@ if (p.name === "Curso Completo de Programação") {
 window.location.href = "/produto/curso-programacao";
 return;
 }
+if (p.name === "80 Mil Cortes Virais") {
+  window.location.href = "/produto/80mil-cortes";
+  return;
+}
     setCheckoutError("");
   }}
   className={`flex-1 text-center px-3 py-3 rounded-xl text-sm md:text-base font-black transition-all duration-300 ${
@@ -1148,8 +1218,8 @@ return;
   }`}
 >
   {meusProdutos.some((produto) => produto.nome === p.name)
-    ? "Ver produto"
-    : "Comprar"}
+  ? "Acessar produto"
+  : "Ver produto"}
 </button>
 
             <button
@@ -1269,13 +1339,17 @@ onChange={(e) =>
     <button
   onClick={() => {
     navigator.clipboard.writeText(pixData.qr_code);
-setCheckoutError("✅ Código PIX copiado com sucesso!");
+setAvisoPix("✅ Código PIX copiado com sucesso!");
   }}
   className="mt-3 w-full bg-purple-600 hover:bg-purple-500 transition py-3 rounded-xl font-black"
 >
   Copiar código PIX
 </button>
-
+{avisoPix && (
+  <div className="mt-3 rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-center font-bold text-green-300">
+    {avisoPix}
+  </div>
+)}
 {pixData?.aprovado && checkoutProduct?.name === "Painel SMM" && (
   <div className="mt-5 border border-pink-500/30 rounded-2xl p-4 bg-[#0f0f12]">
     <h3 className="text-2xl font-black text-green-400 mb-4">
